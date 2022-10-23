@@ -81,7 +81,8 @@ export class Exporter<T> {
     let idx = 0;
     const stmt = await this.buildQuery(ctx);
     const reader = this.connection.query(stmt.query, stmt.params);
-    reader.on('error', (err) => console.error(err));
+    let er: any;
+    reader.on('error', (err) => er = err);
     // (D2) WRITE ROW-BY-ROW
     if (this.map) {
       reader.on('result', async (row: any) => {
@@ -105,12 +106,17 @@ export class Exporter<T> {
     return new Promise<number>((resolve, reject) => {
       reader.on('end', () => {
         this.end();
-        this.connection.end((err) => {
-          if (err) {
-            reject(err);
-          }
-        });
-        resolve(idx);
+        if (er) {
+          reject(er);
+        } else {
+          this.connection.end((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(idx);
+            }
+          });
+        }
       });
     });
   }
@@ -134,7 +140,8 @@ export class ExportService<T> {
     let idx = 0;
     const stmt = await this.queryBuilder.build(ctx);
     const reader = this.connection.query(stmt.query, stmt.params);
-    reader.on('error', (err) => console.error(err));
+    let er: any;
+    reader.on('error', (err) => er = err);
     // (D2) WRITE ROW-BY-ROW
     if (this.map) {
       reader.on('result', async (row: any) => {
@@ -162,12 +169,17 @@ export class ExportService<T> {
         } else if (this.writer.flush) {
           this.writer.flush();
         }
-        this.connection.end((err) => {
-          if (err) {
-            reject(err);
-          }
-        });
-        resolve(idx);
+        if (er) {
+          reject(er);
+        } else {
+          this.connection.end((err) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(idx);
+            }
+          });
+        }
       });
     });
   }
